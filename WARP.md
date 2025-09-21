@@ -118,8 +118,10 @@ Key settings in `application.yml`:
 - Frontend allows region switching via query parameters
 
 ### Database Schema
-- Automatic schema updates via Hibernate (`ddl-auto: update`)
+- **Flyway migrations** for versioned schema management (see `DATABASE_MIGRATIONS.md`)
+- **Hibernate validation mode** (`ddl-auto: validate`) for schema verification
 - Composite indexing on `priceDateTime` and `region` for query optimization
+- Performance indexes for common query patterns (spot price ranking, current hour lookup)
 - Audit fields `createdAt`/`updatedAt` automatically managed
 
 ### HTMX Integration Patterns

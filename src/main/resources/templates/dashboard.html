@@ -247,13 +247,11 @@
                                  th:with="chartPrice=${hourlyPrices.get(hour)}"
                                  class="flex-1 flex flex-col items-center">
                                 <div th:if="${chartPrice != null}"
-                                     class="transition-all duration-200 hover:opacity-80 cursor-pointer rounded-t"
-                                     th:class="'transition-all duration-200 hover:opacity-80 cursor-pointer rounded-t ' + 
-                                              (${hour == currentHour} ? 'bg-gradient-to-t from-blue-400 to-blue-600' : 
-                                               ${chartPrice.totalPricePerKWh > 0.8} ? 'bg-gradient-to-t from-red-300 to-red-500' :
-                                               ${chartPrice.totalPricePerKWh < 0.3} ? 'bg-gradient-to-t from-green-300 to-green-500' :
-                                               'bg-gradient-to-t from-yellow-200 to-yellow-400')"
-                                     th:style="'height: ' + ${T(java.lang.Math).max(8, (chartPrice.totalPricePerKWh / 1.2) * 80)} + 'px; width: 12px;'"
+                                     th:with="barColor=${hour == currentHour} ? 'bg-gradient-to-t from-blue-400 to-blue-600' : 
+                                                       (${chartPrice.totalPricePerKWh > 0.8} ? 'bg-gradient-to-t from-red-300 to-red-500' : 
+                                                       (${chartPrice.totalPricePerKWh < 0.3} ? 'bg-gradient-to-t from-green-300 to-green-500' : 'bg-gradient-to-t from-yellow-200 to-yellow-400'))"
+                                     th:class="'transition-all duration-200 hover:opacity-80 cursor-pointer rounded-t ' + ${barColor}"
+                                     th:style="'height: ' + ${T(java.lang.Math).max(8.0, (chartPrice.totalPricePerKWh.doubleValue() / 1.2) * 80)} + 'px; width: 12px;'"
                                      th:title="${hour < 10 ? '0' + hour : hour} + ':00 - ' + ${#numbers.formatDecimal(chartPrice.totalPricePerKWh, 1, 5, 'POINT')} + ' kr/kWh' + (${hour == currentHour} ? ' (Current)' : '')"
                                      th:attr="data-hour=${hour}">
                                 </div>
