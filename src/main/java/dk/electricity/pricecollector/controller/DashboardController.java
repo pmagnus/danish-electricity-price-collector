@@ -12,7 +12,10 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Controller
 public class DashboardController {
@@ -35,9 +38,41 @@ public class DashboardController {
         List<ElectricityPrice> recentPrices = priceService.getRecentPrices("DK1", 24);
         model.addAttribute("recentPrices", recentPrices);
         
-        // Get today's prices for detailed view
-        List<ElectricityPrice> todaysPrices = priceService.getTodaysPrices("DK1");
-        model.addAttribute("todaysPrices", todaysPrices);
+        // Try to get today's prices first, fall back to tomorrow's if empty
+        List<ElectricityPrice> displayPrices = priceService.getTodaysPrices("DK1");
+        String pricesPeriod = "Today";
+        
+        if (displayPrices.isEmpty()) {
+            displayPrices = priceService.getTomorrowsPrices("DK1");
+            pricesPeriod = "Tomorrow";
+        }
+        
+        model.addAttribute("todaysPrices", displayPrices);
+        model.addAttribute("pricesPeriod", pricesPeriod);
+        
+        // Create a list for all 24 hours (null for missing hours)
+        List<ElectricityPrice> hourlyPricesList = new ArrayList<>();
+        for (int i = 0; i < 24; i++) {
+            hourlyPricesList.add(null);
+        }
+        for (ElectricityPrice price : displayPrices) {
+            int hour = price.getHour(); // Use the hour column directly
+            if (hour >= 0 && hour < 24) {
+                hourlyPricesList.set(hour, price);
+            }
+        }
+        model.addAttribute("hourlyPricesList", hourlyPricesList);
+        
+        // Also create a map for template compatibility
+        Map<Integer, ElectricityPrice> hourlyPrices = new HashMap<>();
+        for (ElectricityPrice price : displayPrices) {
+            int hour = price.getHour();
+            hourlyPrices.put(hour, price);
+        }
+        model.addAttribute("hourlyPrices", hourlyPrices);
+        
+        // Add current hour for highlighting
+        model.addAttribute("currentHour", LocalDateTime.now().getHour());
         
         return "dashboard";
     }
@@ -173,5 +208,106 @@ public class DashboardController {
         } catch (Exception e) {
             return "Error fetching prices: " + e.getMessage();
         }
+    }
+    
+    @GetMapping("/api/fetch/force-refresh")
+    @ResponseBody
+    public String forceRefreshTodaysPrices() {
+        try {
+            // Delete today's existing prices
+            priceService.deletePricesForDate(LocalDateTime.now().toLocalDate(), "DK1");
+            priceService.deletePricesForDate(LocalDateTime.now().toLocalDate(), "DK2");
+            
+            // Fetch fresh data
+            elprisenLigenuService.fetchAndSaveTodaysPrices();
+            
+            return "Today's electricity prices force-refreshed successfully! All 24 hours should now be available.";
+        } catch (Exception e) {
+            return "Error force-refreshing prices: " + e.getMessage();
+        }
+    }
+    
+    // Debug endpoint to check hourly prices
+    @GetMapping("/api/debug/hourly-prices")
+    @ResponseBody
+    public Map<String, Object> debugHourlyPrices() {
+        // Get tomorrow's prices
+        List<ElectricityPrice> displayPrices = priceService.getTomorrowsPrices("DK1");
+        
+        // Create hourly map
+        Map<Integer, ElectricityPrice> hourlyPrices = new HashMap<>();
+        for (ElectricityPrice price : displayPrices) {
+            int hour = price.getPriceDateTime().getHour();
+            hourlyPrices.put(hour, price);
+        }
+        
+        Map<String, Object> debug = new HashMap<>();
+        debug.put("displayPricesCount", displayPrices.size());
+        debug.put("hourlyPricesKeys", hourlyPrices.keySet());
+        debug.put("currentHour", LocalDateTime.now().getHour());
+        
+        return debug;
+    }
+    
+    @GetMapping("/test-prices")
+    public String testPrices(Model model) {
+        // Use the same logic as the main dashboard
+        List<ElectricityPrice> displayPrices = priceService.getTodaysPrices("DK1");
+        String pricesPeriod = "Today";
+        
+        if (displayPrices.isEmpty()) {
+            displayPrices = priceService.getTomorrowsPrices("DK1");
+            pricesPeriod = "Tomorrow";
+        }
+        
+        // Create hourly map
+        Map<Integer, ElectricityPrice> hourlyPrices = new HashMap<>();
+        for (ElectricityPrice price : displayPrices) {
+            int hour = price.getPriceDateTime().getHour();
+            hourlyPrices.put(hour, price);
+        }
+        
+        // Create list like the main dashboard
+        List<ElectricityPrice> hourlyPricesList = new ArrayList<>();
+        for (int i = 0; i < 24; i++) {
+            hourlyPricesList.add(null);
+        }
+        for (ElectricityPrice price : displayPrices) {
+            int hour = price.getHour();
+            if (hour >= 0 && hour < 24) {
+                hourlyPricesList.set(hour, price);
+            }
+        }
+        
+        model.addAttribute("displayPrices", displayPrices);
+        model.addAttribute("hourlyPrices", hourlyPrices);
+        model.addAttribute("hourlyPricesList", hourlyPricesList);
+        model.addAttribute("pricesPeriod", pricesPeriod);
+        model.addAttribute("currentHour", LocalDateTime.now().getHour());
+        
+        return "test-prices"; // will create this template
+    }
+    
+    @GetMapping("/api/debug/timezone")
+    @ResponseBody
+    public Map<String, String> debugTimezone() {
+        Map<String, String> debug = new HashMap<>();
+        
+        // Test what happens with timezone conversion
+        String testTimestamp = "2025-09-21T00:00:00+02:00";
+        try {
+            java.time.OffsetDateTime odt = java.time.OffsetDateTime.parse(testTimestamp);
+            java.time.LocalDateTime ldt = odt.toLocalDateTime();
+            
+            debug.put("originalTimestamp", testTimestamp);
+            debug.put("offsetDateTime", odt.toString());
+            debug.put("localDateTime", ldt.toString());
+            debug.put("systemTimeZone", java.time.ZoneId.systemDefault().toString());
+            debug.put("currentTime", java.time.LocalDateTime.now().toString());
+        } catch (Exception e) {
+            debug.put("error", e.getMessage());
+        }
+        
+        return debug;
     }
 }

@@ -2,13 +2,15 @@ package dk.electricity.pricecollector.model;
 
 import jakarta.persistence.*;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Objects;
 
 @Entity
 @Table(name = "electricity_prices", indexes = {
     @Index(name = "idx_price_datetime", columnList = "priceDateTime"),
-    @Index(name = "idx_region", columnList = "region")
+    @Index(name = "idx_region", columnList = "region"),
+    @Index(name = "idx_price_date_region_hour", columnList = "priceDate, region, hour")
 })
 public class ElectricityPrice {
     
@@ -19,17 +21,23 @@ public class ElectricityPrice {
     @Column(nullable = false)
     private LocalDateTime priceDateTime;
     
-    @Column(nullable = false, precision = 10, scale = 6)
-    private BigDecimal spotPrice; // DKK per MWh
+    @Column(nullable = false)
+    private LocalDate priceDate; // The date these prices are for (e.g., 2025-09-21)
+    
+    @Column(nullable = false)
+    private Integer hour; // Hour of the day (0-23)
     
     @Column(nullable = false, precision = 10, scale = 6)
-    private BigDecimal transmissionTariff; // DKK per MWh
+    private BigDecimal spotPrice; // DKK per kWh
     
     @Column(nullable = false, precision = 10, scale = 6)
-    private BigDecimal systemTariff; // DKK per MWh
+    private BigDecimal transmissionTariff; // DKK per kWh
     
     @Column(nullable = false, precision = 10, scale = 6)
-    private BigDecimal electricityTax; // DKK per MWh
+    private BigDecimal systemTariff; // DKK per kWh
+    
+    @Column(nullable = false, precision = 10, scale = 6)
+    private BigDecimal electricityTax; // DKK per kWh
     
     @Column(nullable = false, precision = 10, scale = 6)
     private BigDecimal totalPrice; // Total including all tariffs and taxes
@@ -54,6 +62,22 @@ public class ElectricityPrice {
                            BigDecimal electricityTax, String region) {
         this();
         this.priceDateTime = priceDateTime;
+        this.priceDate = priceDateTime.toLocalDate(); // Default: extract date from datetime
+        this.spotPrice = spotPrice;
+        this.transmissionTariff = transmissionTariff;
+        this.systemTariff = systemTariff;
+        this.electricityTax = electricityTax;
+        this.region = region;
+        calculateTotalPrice();
+    }
+    
+    public ElectricityPrice(LocalDateTime priceDateTime, LocalDate priceDate, Integer hour, 
+                           BigDecimal spotPrice, BigDecimal transmissionTariff, BigDecimal systemTariff,
+                           BigDecimal electricityTax, String region) {
+        this();
+        this.priceDateTime = priceDateTime;
+        this.priceDate = priceDate;
+        this.hour = hour;
         this.spotPrice = spotPrice;
         this.transmissionTariff = transmissionTariff;
         this.systemTariff = systemTariff;
@@ -97,6 +121,22 @@ public class ElectricityPrice {
     
     public void setPriceDateTime(LocalDateTime priceDateTime) {
         this.priceDateTime = priceDateTime;
+    }
+    
+    public LocalDate getPriceDate() {
+        return priceDate;
+    }
+    
+    public void setPriceDate(LocalDate priceDate) {
+        this.priceDate = priceDate;
+    }
+    
+    public Integer getHour() {
+        return hour;
+    }
+    
+    public void setHour(Integer hour) {
+        this.hour = hour;
     }
     
     public BigDecimal getSpotPrice() {
@@ -165,11 +205,11 @@ public class ElectricityPrice {
     
     // Utility methods
     public BigDecimal getTotalPricePerKWh() {
-        return totalPrice.divide(BigDecimal.valueOf(1000)); // Convert MWh to kWh
+        return totalPrice; // Already in kWh
     }
     
     public BigDecimal getSpotPricePerKWh() {
-        return spotPrice.divide(BigDecimal.valueOf(1000)); // Convert MWh to kWh
+        return spotPrice; // Already in kWh
     }
     
     @Override

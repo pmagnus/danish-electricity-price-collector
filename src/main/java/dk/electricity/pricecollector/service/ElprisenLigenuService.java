@@ -14,6 +14,7 @@ import java.math.BigDecimal;
 import java.math.MathContext;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.List;
@@ -26,10 +27,10 @@ public class ElprisenLigenuService {
     private static final String API_BASE_URL = "https://www.elprisenligenu.dk/api/v1/prices/";
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy/MM-dd");
     
-    // Standard Danish tariffs and taxes (DKK per MWh)
-    private static final BigDecimal TRANSMISSION_TARIFF = new BigDecimal("58.0");
-    private static final BigDecimal SYSTEM_TARIFF = new BigDecimal("12.5");
-    private static final BigDecimal ELECTRICITY_TAX = new BigDecimal("90.0");
+    // Standard Danish tariffs and taxes (DKK per kWh)
+    private static final BigDecimal TRANSMISSION_TARIFF = new BigDecimal("0.058");
+    private static final BigDecimal SYSTEM_TARIFF = new BigDecimal("0.0125");
+    private static final BigDecimal ELECTRICITY_TAX = new BigDecimal("0.090");
     
     @Autowired
     private ElectricityPriceService electricityPriceService;
@@ -72,7 +73,7 @@ public class ElprisenLigenuService {
             
             SpotPrice[] spotPrices = objectMapper.readValue(response, SpotPrice[].class);
             return Arrays.stream(spotPrices)
-                    .map(spotPrice -> convertToElectricityPrice(spotPrice, region))
+                    .map(spotPrice -> convertToElectricityPrice(spotPrice, region, date))
                     .collect(Collectors.toList());
                     
         } catch (Exception e) {
@@ -130,21 +131,30 @@ public class ElprisenLigenuService {
         return API_BASE_URL + formattedDate + "_" + region + ".json";
     }
     
-    private ElectricityPrice convertToElectricityPrice(SpotPrice spotPrice, String region) {
-        // Convert spot price from DKK per kWh to DKK per MWh
-        BigDecimal spotPricePerMWh = spotPrice.dkkPerKWh.multiply(new BigDecimal("1000"));
+    private ElectricityPrice convertToElectricityPrice(SpotPrice spotPrice, String region, LocalDate forDate) {
+        // Use spot price directly (already in DKK per kWh)
+        BigDecimal spotPricePerKWh = spotPrice.dkkPerKWh;
+        
+        // Convert to Danish timezone for consistent storage
+        LocalDateTime priceDateTime = spotPrice.timeStart.atZoneSameInstant(
+            java.time.ZoneId.of("Europe/Copenhagen")).toLocalDateTime();
+        
+        // Extract hour from the converted priceDateTime (should match exactly)
+        int hour = priceDateTime.getHour();
         
         ElectricityPrice electricityPrice = new ElectricityPrice(
-                spotPrice.timeStart,
-                spotPricePerMWh,
+                priceDateTime,
+                forDate, // Explicitly set which date these prices are for
+                hour,    // Hour of the day (0-23) from original timezone
+                spotPricePerKWh,
                 TRANSMISSION_TARIFF,
                 SYSTEM_TARIFF,
                 ELECTRICITY_TAX,
                 region
         );
         
-        logger.debug("Converted spot price: {} DKK/kWh -> {} DKK/MWh for {} at {}", 
-                     spotPrice.dkkPerKWh, spotPricePerMWh, region, spotPrice.timeStart);
+        logger.info("Converting: original={}, converted={}, extractedHour={}, spotPrice={}, region={}, forDate={}", 
+                     spotPrice.timeStart, priceDateTime, hour, spotPricePerKWh, region, forDate);
         
         return electricityPrice;
     }
@@ -163,10 +173,10 @@ public class ElprisenLigenuService {
         public BigDecimal exchangeRate;
         
         @JsonProperty("time_start")
-        public LocalDateTime timeStart;
+        public OffsetDateTime timeStart;
         
         @JsonProperty("time_end")
-        public LocalDateTime timeEnd;
+        public OffsetDateTime timeEnd;
         
         // Default constructor for Jackson
         public SpotPrice() {}

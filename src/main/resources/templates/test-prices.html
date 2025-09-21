@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Test Prices</title>
+</head>
+<body>
+    <h1>Price Data Debug</h1>
+    
+    <h2>Current Hour: <span th:text="${currentHour}">0</span></h2>
+    
+    <h2>Display Prices Count: <span th:text="${#lists.size(displayPrices)}">0</span></h2>
+    
+    <h2>Hourly Prices Map Keys:</h2>
+    <ul>
+        <li th:each="key : ${hourlyPrices.keySet()}" th:text="${key}">key</li>
+    </ul>
+    
+    <h2>Raw Price List:</h2>
+    <ul>
+        <li th:each="price : ${displayPrices}">
+            Hour: <span th:text="${price.priceDateTime.hour}">0</span> - 
+            Price: <span th:text="${price.spotPricePerKWh}">0</span> kr/kWh - 
+            DateTime: <span th:text="${price.priceDateTime}">datetime</span>
+        </li>
+    </ul>
+    
+    <h2>Test Hourly Access:</h2>
+    <ul>
+        <li th:each="hour : ${#numbers.sequence(0, 23)}">
+            <div th:if="${hourlyPrices[hour] != null}">
+                Hour <span th:text="${hour}">0</span>: 
+                <span th:text="${hourlyPrices[hour].spotPricePerKWh}">0</span> kr/kWh
+            </div>
+            <div th:if="${hourlyPrices[hour] == null}">
+                Hour <span th:text="${hour}">0</span>: No data
+            </div>
+        </li>
+    </ul>
+    
+    <h2>Direct Map Access Test:</h2>
+    <ul>
+        <li>Hour 1: <span th:text="${hourlyPrices.get(1)?.spotPricePerKWh ?: 'null'}">test</span></li>
+        <li>Hour 2: <span th:text="${hourlyPrices.get(2)?.spotPricePerKWh ?: 'null'}">test</span></li>
+        <li>Hour 5: <span th:text="${hourlyPrices.get(5)?.spotPricePerKWh ?: 'null'}">test</span></li>
+    </ul>
+</body>
+</html>

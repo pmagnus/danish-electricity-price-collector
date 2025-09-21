@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -97,7 +98,7 @@ public class ElectricityPriceService {
      */
     public Optional<ElectricityPrice> getTodaysLowestPrice(String region) {
         logger.debug("Fetching today's lowest price for region: {}", region);
-        return repository.findLowestPriceForDate(region, LocalDateTime.now());
+        return repository.findLowestPriceForDate(region, LocalDate.now());
     }
     
     /**
@@ -105,7 +106,7 @@ public class ElectricityPriceService {
      */
     public Optional<ElectricityPrice> getTodaysHighestPrice(String region) {
         logger.debug("Fetching today's highest price for region: {}", region);
-        return repository.findHighestPriceForDate(region, LocalDateTime.now());
+        return repository.findHighestPriceForDate(region, LocalDate.now());
     }
     
     /**
@@ -149,6 +150,20 @@ public class ElectricityPriceService {
         }
         
         return oldPrices.size();
+    }
+    
+    /**
+     * Delete all prices for a specific date and region
+     */
+    @Transactional
+    public void deletePricesForDate(LocalDate date, String region) {
+        List<ElectricityPrice> pricesToDelete = repository.findPricesForDateAndRegion(region, date);
+        
+        if (!pricesToDelete.isEmpty()) {
+            repository.deleteAll(pricesToDelete);
+            logger.info("Deleted {} electricity prices for date {} in region {}", 
+                pricesToDelete.size(), date, region);
+        }
     }
     
     /**

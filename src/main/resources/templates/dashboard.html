@@ -42,7 +42,8 @@
                 </div>
                 <div class="text-right">
                     <div class="text-sm text-gray-500">Today: Saturday, 21 September 2025</div>
-                    <div class="text-xs text-gray-400">Real-time data</div>
+                    <div class="text-lg font-semibold text-blue-600" id="current-time">--:--</div>
+                    <div class="text-xs text-gray-400">Real-time data from elprisenligenu.dk</div>
                 </div>
             </div>
         </div>
@@ -62,7 +63,7 @@
                             <p class="text-sm font-medium text-gray-500">Current Price</p>
                             <div th:if="${summary.currentPrice}">
                                 <p class="text-2xl font-bold text-gray-900" 
-                                   th:text="${#numbers.formatDecimal(summary.currentPrice.totalPricePerKWh, 0, 4)} + ' kr/kWh'">
+                                   th:text="${#numbers.formatDecimal(summary.currentPrice.totalPricePerKWh, 1, 4, 'POINT')} + ' kr/kWh'">
                                    0.0000 kr/kWh
                                 </p>
                                 <p class="text-xs text-gray-500" 
@@ -91,7 +92,7 @@
                             <p class="text-sm font-medium text-gray-500">Lowest Today</p>
                             <div th:if="${summary.lowestPrice}">
                                 <p class="text-2xl font-bold text-green-600" 
-                                   th:text="${#numbers.formatDecimal(summary.lowestPrice.totalPricePerKWh, 0, 4)} + ' kr/kWh'">
+                                   th:text="${#numbers.formatDecimal(summary.lowestPrice.totalPricePerKWh, 1, 4, 'POINT')} + ' kr/kWh'">
                                    0.0000 kr/kWh
                                 </p>
                                 <p class="text-xs text-gray-500" 
@@ -120,7 +121,7 @@
                             <p class="text-sm font-medium text-gray-500">Highest Today</p>
                             <div th:if="${summary.highestPrice}">
                                 <p class="text-2xl font-bold text-red-600" 
-                                   th:text="${#numbers.formatDecimal(summary.highestPrice.totalPricePerKWh, 0, 4)} + ' kr/kWh'">
+                                   th:text="${#numbers.formatDecimal(summary.highestPrice.totalPricePerKWh, 1, 4, 'POINT')} + ' kr/kWh'">
                                    0.0000 kr/kWh
                                 </p>
                                 <p class="text-xs text-gray-500" 
@@ -159,8 +160,14 @@
         <div class="bg-white shadow-lg rounded-lg mb-8">
             <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
                 <div>
-                    <h2 class="text-lg font-medium text-gray-900">Today's Electricity Prices</h2>
+                    <h2 class="text-lg font-medium text-gray-900" th:if="${pricesPeriod == 'Tomorrow'}">Tomorrow's Electricity Prices</h2>
+                    <h2 class="text-lg font-medium text-gray-900" th:unless="${pricesPeriod == 'Tomorrow'}">Today's Electricity Prices</h2>
                     <p class="text-sm text-gray-500">Hourly prices for DK1 (West Denmark) including all tariffs and taxes</p>
+                    <div th:if="${pricesPeriod == 'Tomorrow'}" class="mt-1">
+                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                            📅 Showing tomorrow's prices (today's not yet available)
+                        </span>
+                    </div>
                 </div>
                 <div class="text-right">
                     <a href="/api/fetch/today" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm">↻ Refresh Prices</a>
@@ -178,58 +185,117 @@
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
-                            <tr th:each="price : ${todaysPrices}" class="hover:bg-gray-50">
+                            <!-- Loop through all 24 hours of the day -->
+                            <tr th:each="hour : ${#numbers.sequence(0, 23)}" 
+                                th:with="hourPrice=${hourlyPrices.get(hour)}"
+                                th:class="'hover:bg-gray-50 transition-colors ' + 
+                                         (${hour == currentHour} ? 'bg-blue-50 border-l-4 border-blue-500 shadow-sm' : '')">
                                 <td class="px-4 py-4 whitespace-nowrap">
                                     <div class="flex items-center">
                                         <div class="text-sm font-medium text-gray-900"
-                                             th:text="${#temporals.format(price.priceDateTime, 'HH:mm')}">00:00</div>
+                                             th:text="${hour < 10 ? '0' + hour : hour} + ':00 - ' + ${(hour + 1) < 10 ? '0' + (hour + 1) : (hour + 1)} + ':00'">00:00 - 01:00</div>
+                                        <div th:if="${hour == currentHour}"
+                                             class="ml-3 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                            🕙 Current Hour
+                                        </div>
                                     </div>
                                 </td>
-                                <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900"
-                                    th:text="${#numbers.formatDecimal(price.spotPricePerKWh, 0, 4)} + ' kr/kWh'">0.0000 kr/kWh</td>
-                                <td class="px-4 py-4 whitespace-nowrap">
-                                    <div class="text-sm font-medium"
-                                         th:class="'text-sm font-medium ' + 
-                                                  (${price.totalPricePerKWh > 0.8} ? 'text-red-600' : 
-                                                   ${price.totalPricePerKWh < 0.3} ? 'text-green-600' : 'text-gray-900')"
-                                         th:text="${#numbers.formatDecimal(price.totalPricePerKWh, 0, 4)} + ' kr/kWh'">0.0000 kr/kWh</div>
-                                    <div class="text-xs text-gray-500">inc. all tariffs</div>
+                                <td class="px-4 py-4 whitespace-nowrap text-sm">
+                                    <div th:if="${hourPrice != null}">
+                                        <div class="text-gray-900 font-medium" th:text="${#numbers.formatDecimal(hourPrice.spotPricePerKWh, 1, 5, 'POINT')} + ' kr/kWh'">0.06023 kr/kWh</div>
+                                        <div class="text-xs text-gray-500">spot price</div>
+                                    </div>
+                                    <div th:if="${hourPrice == null}" class="text-gray-400 text-sm">
+                                        <span>No data</span>
+                                    </div>
                                 </td>
                                 <td class="px-4 py-4 whitespace-nowrap">
-                                    <span th:if="${price.totalPricePerKWh > 0.8}"
-                                          class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                        High
-                                    </span>
-                                    <span th:if="${price.totalPricePerKWh < 0.3}"
-                                          class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                        Low
-                                    </span>
-                                    <span th:if="${price.totalPricePerKWh >= 0.3 and price.totalPricePerKWh <= 0.8}"
-                                          class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                                        Normal
-                                    </span>
+                                    <div th:if="${hourPrice != null}">
+                                        <div th:class="${hourPrice.totalPricePerKWh > 0.8} ? 'text-sm font-medium text-red-600' : (${hourPrice.totalPricePerKWh < 0.3} ? 'text-sm font-medium text-green-600' : 'text-sm font-medium text-gray-900')"
+                                             th:text="${#numbers.formatDecimal(hourPrice.totalPricePerKWh, 1, 5, 'POINT')} + ' kr/kWh'">0.82512 kr/kWh</div>
+                                        <div class="text-xs text-gray-500">inc. all tariffs & taxes</div>
+                                    </div>
+                                    <div th:if="${hourPrice == null}" class="text-gray-400 text-sm">
+                                        <span>-</span>
+                                    </div>
+                                </td>
+                                <td class="px-4 py-4 whitespace-nowrap">
+                                    <div th:if="${hourPrice != null}">
+                                        <span th:if="${hourPrice.totalPricePerKWh > 0.8}"
+                                              class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                            🔴 High
+                                        </span>
+                                        <span th:if="${hourPrice.totalPricePerKWh < 0.3}"
+                                              class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                            🟢 Low
+                                        </span>
+                                        <span th:if="${hourPrice.totalPricePerKWh >= 0.3 and hourPrice.totalPricePerKWh <= 0.8}"
+                                              class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                            🟡 Normal
+                                        </span>
+                                    </div>
+                                    <div th:if="${hourPrice == null}">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                                            ⏳ Pending
+                                        </span>
+                                    </div>
                                 </td>
                             </tr>
                         </tbody>
                     </table>
                     
-                    <!-- Mini price chart -->
+                    <!-- 24-hour price chart -->
                     <div class="mt-6 pt-6 border-t border-gray-200">
-                        <h3 class="text-sm font-medium text-gray-900 mb-3">Price Trend Today</h3>
-                        <div class="flex items-end justify-between h-24 space-x-1">
-                            <div th:each="price : ${todaysPrices}" class="flex-1">
-                                <div class="bg-gradient-to-t from-blue-200 to-blue-400 rounded-t transition-all hover:from-blue-300 hover:to-blue-500 cursor-pointer"
-                                     th:style="'height: ' + ${(price.totalPricePerKWh / 1.5) * 80} + 'px;'"
-                                     th:title="${#temporals.format(price.priceDateTime, 'HH:mm')} + ': ' + ${#numbers.formatDecimal(price.totalPricePerKWh, 0, 4)} + ' kr/kWh'">
+                        <h3 class="text-sm font-medium text-gray-900 mb-3">24-Hour Price Trend</h3>
+                        <div class="flex items-end justify-between h-32 bg-gray-50 rounded-lg p-4">
+                            <div th:each="hour : ${#numbers.sequence(0, 23)}" 
+                                 th:with="chartPrice=${hourlyPrices.get(hour)}"
+                                 class="flex-1 flex flex-col items-center">
+                                <div th:if="${chartPrice != null}"
+                                     class="transition-all duration-200 hover:opacity-80 cursor-pointer rounded-t"
+                                     th:class="'transition-all duration-200 hover:opacity-80 cursor-pointer rounded-t ' + 
+                                              (${hour == currentHour} ? 'bg-gradient-to-t from-blue-400 to-blue-600' : 
+                                               ${chartPrice.totalPricePerKWh > 0.8} ? 'bg-gradient-to-t from-red-300 to-red-500' :
+                                               ${chartPrice.totalPricePerKWh < 0.3} ? 'bg-gradient-to-t from-green-300 to-green-500' :
+                                               'bg-gradient-to-t from-yellow-200 to-yellow-400')"
+                                     th:style="'height: ' + ${T(java.lang.Math).max(8, (chartPrice.totalPricePerKWh / 1.2) * 80)} + 'px; width: 12px;'"
+                                     th:title="${hour < 10 ? '0' + hour : hour} + ':00 - ' + ${#numbers.formatDecimal(chartPrice.totalPricePerKWh, 1, 5, 'POINT')} + ' kr/kWh' + (${hour == currentHour} ? ' (Current)' : '')"
+                                     th:attr="data-hour=${hour}">
                                 </div>
-                                <div class="text-xs text-center text-gray-500 mt-1" 
-                                     th:text="${#temporals.format(price.priceDateTime, 'HH')}">00</div>
+                                <div th:if="${chartPrice == null}" 
+                                     class="bg-gray-200 rounded-t cursor-help" 
+                                     style="height: 8px; width: 12px;"
+                                     th:title="${hour < 10 ? '0' + hour : hour} + ':00 - No data available'">
+                                </div>
+                                <div class="text-xs text-center mt-1" 
+                                     th:class="'text-xs text-center mt-1 ' + (${hour == currentHour} ? 'text-blue-600 font-semibold' : 'text-gray-500')"
+                                     th:text="${hour == 0 ? '00' : hour < 10 ? '0' + hour : hour}">00</div>
                             </div>
                         </div>
-                        <div class="flex justify-between text-xs text-gray-400 mt-2">
-                            <span>Midnight</span>
-                            <span>Noon</span>
-                            <span>Midnight</span>
+                        <div class="flex justify-between text-xs text-gray-400 mt-3">
+                            <span>00:00</span>
+                            <span>06:00</span>
+                            <span>12:00</span>
+                            <span>18:00</span>
+                            <span>24:00</span>
+                        </div>
+                        <div class="flex justify-center mt-3 space-x-4 text-xs">
+                            <div class="flex items-center space-x-1">
+                                <div class="w-3 h-3 bg-gradient-to-t from-green-300 to-green-500 rounded"></div>
+                                <span class="text-gray-600">Low (&lt; 0.30 kr/kWh)</span>
+                            </div>
+                            <div class="flex items-center space-x-1">
+                                <div class="w-3 h-3 bg-gradient-to-t from-yellow-200 to-yellow-400 rounded"></div>
+                                <span class="text-gray-600">Normal (0.30-0.80 kr/kWh)</span>
+                            </div>
+                            <div class="flex items-center space-x-1">
+                                <div class="w-3 h-3 bg-gradient-to-t from-red-300 to-red-500 rounded"></div>
+                                <span class="text-gray-600">High (&gt; 0.80 kr/kWh)</span>
+                            </div>
+                            <div class="flex items-center space-x-1">
+                                <div class="w-3 h-3 bg-gradient-to-t from-blue-400 to-blue-600 rounded"></div>
+                                <span class="text-blue-600 font-semibold">Current Hour</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -307,5 +373,48 @@
 
     <!-- Custom JavaScript -->
     <script th:src="@{/js/app.js}"></script>
+    
+    <!-- Dashboard specific JavaScript -->
+    <script>
+        // Update current time every second
+        function updateCurrentTime() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('da-DK', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            });
+            const timeElement = document.getElementById('current-time');
+            if (timeElement) {
+                timeElement.textContent = timeString;
+            }
+        }
+        
+        // Update time immediately and then every second
+        updateCurrentTime();
+        setInterval(updateCurrentTime, 1000);
+        
+        // Auto-refresh price data every 5 minutes
+        setInterval(function() {
+            // Only refresh if we're still on the dashboard
+            if (window.location.pathname === '/') {
+                window.location.reload();
+            }
+        }, 300000); // 5 minutes
+        
+        // Add smooth hover effects to chart bars
+        document.addEventListener('DOMContentLoaded', function() {
+            const chartBars = document.querySelectorAll('[data-hour]');
+            chartBars.forEach(bar => {
+                bar.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-2px)';
+                });
+                bar.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(0)';
+                });
+            });
+        });
+    </script>
 </body>
 </html>

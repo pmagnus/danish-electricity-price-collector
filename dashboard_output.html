@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.8"></script>
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/css/app.css">
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <nav class="bg-blue-600 text-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <h1 class="text-xl font-semibold">
+                        <a href="/" class="hover:text-blue-200">Danish Electricity Price Collector</a>
+                    </h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="/" class="hover:text-blue-200 px-3 py-2 rounded-md">Dashboard</a>
+                    <a href="/prices" class="hover:text-blue-200 px-3 py-2 rounded-md">Prices</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <div class="px-4 py-8">
+        <!-- Page Header -->
+        <div class="mb-8">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900 mb-2">Danish Electricity Price Dashboard</h1>
+                    <p class="text-gray-600">Real-time electricity prices for West Denmark (DK1) with all tariffs included</p>
+                </div>
+                <div class="text-right">
+                    <div class="text-sm text-gray-500">Today: Saturday, 21 September 2025</div>
+                    <div class="text-lg font-semibold text-blue-600" id="current-time">--:--</div>
+                    <div class="text-xs text-gray-400">Real-time data from elprisenligenu.dk</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <!-- Current Price Card -->
+            <div class="bg-white overflow-hidden shadow-lg rounded-lg price-card">
+                <div class="p-6">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                                <span class="text-white text-sm font-bold">⚡</span>
+                            </div>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-500">Current Price</p>
+                            
+                            <div>
+                                <p class="text-2xl font-bold text-gray-400">No data</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lowest Price Today -->
+            <div class="bg-white overflow-hidden shadow-lg rounded-lg price-card">
+                <div class="p-6">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <div class="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                                <span class="text-white text-sm font-bold">↓</span>
+                            </div>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-500">Lowest Today</p>
+                            
+                            <div>
+                                <p class="text-2xl font-bold text-gray-400">No data</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Highest Price Today -->
+            <div class="bg-white overflow-hidden shadow-lg rounded-lg price-card">
+                <div class="p-6">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <div class="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center">
+                                <span class="text-white text-sm font-bold">↑</span>
+                            </div>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-500">Highest Today</p>
+                            
+                            <div>
+                                <p class="text-2xl font-bold text-gray-400">No data</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Points Today -->
+            <div class="bg-white overflow-hidden shadow-lg rounded-lg price-card">
+                <div class="p-6">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <div class="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center">
+                                <span class="text-white text-sm font-bold">#</span>
+                            </div>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-500">Data Points Today</p>
+                            <p class="text-2xl font-bold text-gray-900">0</p>
+                            <p class="text-xs text-gray-500">hourly prices</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Today's Electricity Prices -->
+        <div class="bg-white shadow-lg rounded-lg mb-8">
+            <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                <div>
+                    <h2 class="text-lg font-medium text-gray-900">Today's Electricity Prices</h2>
+                    <p class="text-sm text-gray-500">Hourly prices for DK1 (West Denmark) including all tariffs and taxes</p>
+                </div>
+                <div class="text-right">
+                    <a href="/api/fetch/today" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm">↻ Refresh Prices</a>
+                </div>
+            </div>
+            <div class="p-6">
+                
+                <div class="text-center py-8">
+                    <div class="text-gray-500 mb-4">
+                        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                        <p class="mt-2 text-sm">No price data available for today</p>
+                    </div>
+                    <div class="space-y-2">
+                        <a href="/api/fetch/today" class="inline-block bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">
+                            Fetch Real Prices from elprisenligenu.dk
+                        </a>
+                        <div class="text-xs text-gray-400">or</div>
+                        <a href="/api/test/add-sample-data" class="text-blue-600 hover:text-blue-800 text-sm">
+                            Add sample data for testing
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-white shadow-lg rounded-lg p-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Quick Actions</h3>
+                <div class="space-y-3">
+                    <button 
+                        hx-get="/api/current-price?region=DK1" 
+                        hx-target="#current-price-display" 
+                        hx-indicator=".loading-spinner"
+                        class="w-full text-left bg-blue-50 hover:bg-blue-100 rounded-lg p-3 transition-colors duration-200">
+                        <div class="flex items-center justify-between">
+                            <span class="text-blue-800 font-medium">Refresh Current Price</span>
+                            <span class="loading-spinner htmx-indicator"></span>
+                        </div>
+                    </button>
+                    <a href="/prices" class="block w-full text-left bg-green-50 hover:bg-green-100 rounded-lg p-3 transition-colors duration-200">
+                        <span class="text-green-800 font-medium">View All Prices</span>
+                    </a>
+                    <a href="/api/fetch/both" class="block w-full text-left bg-purple-50 hover:bg-purple-100 rounded-lg p-3 transition-colors duration-200">
+                        <span class="text-purple-800 font-medium">Fetch Real Prices from elprisenligenu.dk</span>
+                    </a>
+                </div>
+            </div>
+
+            <div class="bg-white shadow-lg rounded-lg p-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">System Status</h3>
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-600">Database Connection</span>
+                        <span class="text-green-600 font-medium">✓ Connected</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-600">Data Source</span>
+                        <span class="text-blue-600 font-medium">Denmark West (DK1)</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-600">Last Update</span>
+                        
+                        <span class="text-gray-400 text-sm">Never</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hidden div for HTMX responses -->
+        <div id="current-price-display" style="display: none;"></div>
+        </div>
+    </main>
+
+    <!-- Custom JavaScript -->
+    <script src="/js/app.js"></script>
+    
+    <!-- Dashboard specific JavaScript -->
+    <script>
+        // Update current time every second
+        function updateCurrentTime() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('da-DK', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            });
+            const timeElement = document.getElementById('current-time');
+            if (timeElement) {
+                timeElement.textContent = timeString;
+            }
+        }
+        
+        // Update time immediately and then every second
+        updateCurrentTime();
+        setInterval(updateCurrentTime, 1000);
+        
+        // Auto-refresh price data every 5 minutes
+        setInterval(function() {
+            // Only refresh if we're still on the dashboard
+            if (window.location.pathname === '/') {
+                window.location.reload();
+            }
+        }, 300000); // 5 minutes
+        
+        // Add smooth hover effects to chart bars
+        document.addEventListener('DOMContentLoaded', function() {
+            const chartBars = document.querySelectorAll('[data-hour]');
+            chartBars.forEach(bar => {
+                bar.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-2px)';
+                });
+                bar.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(0)';
+                });
+            });
+        });
+    </script>
+</body>
+</html>
