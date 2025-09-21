@@ -24,8 +24,8 @@
                     </h1>
                 </div>
                 <div class="flex items-center space-x-4">
-                    <a th:href="@{/}" class="hover:text-blue-200 px-3 py-2 rounded-md">Dashboard</a>
-                    <a th:href="@{/prices}" class="hover:text-blue-200 px-3 py-2 rounded-md">Prices</a>
+                    <a th:href="@{/}" class="hover:text-blue-200 px-3 py-2 rounded-md">Today</a>
+                    <a th:href="@{/tomorrow}" class="hover:text-blue-200 px-3 py-2 rounded-md">Tomorrow</a>
                 </div>
             </div>
         </div>
@@ -37,7 +37,8 @@
         <div class="mb-8">
             <div class="flex justify-between items-center">
                 <div>
-                    <h1 class="text-3xl font-bold text-gray-900 mb-2">Danish Electricity Price Dashboard</h1>
+                    <h1 class="text-3xl font-bold text-gray-900 mb-2" 
+                        th:text="'Danish Electricity Prices - ' + ${title ?: 'Dashboard'}">Danish Electricity Price Dashboard</h1>
                     <p class="text-gray-600">Real-time electricity prices for West Denmark (DK1) with all tariffs included</p>
                 </div>
                 <div class="text-right">
@@ -49,9 +50,9 @@
         </div>
 
         <!-- Summary Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <!-- Current Price Card -->
-            <div class="bg-white overflow-hidden shadow-lg rounded-lg price-card">
+        <div th:class="'grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 ' + ${title == 'Tomorrow' ? 'lg:grid-cols-3' : 'lg:grid-cols-4'}">
+            <!-- Current Price Card - Only show for Today -->
+            <div th:if="${title != 'Tomorrow'}" class="bg-white overflow-hidden shadow-lg rounded-lg price-card">
                 <div class="p-6">
                     <div class="flex items-center">
                         <div class="flex-shrink-0">
@@ -63,8 +64,8 @@
                             <p class="text-sm font-medium text-gray-500">Current Price</p>
                             <div th:if="${summary.currentPrice}">
                                 <p class="text-2xl font-bold text-gray-900" 
-                                   th:text="${#numbers.formatDecimal(summary.currentPrice.totalPricePerKWh, 1, 4, 'POINT')} + ' kr/kWh'">
-                                   0.0000 kr/kWh
+                                   th:text="${#numbers.formatDecimal(summary.currentPrice.spotPricePerKWh, 1, 5, 'POINT')} + ' kr/kWh'">
+                                   0.00000 kr/kWh
                                 </p>
                                 <p class="text-xs text-gray-500" 
                                    th:text="${#temporals.format(summary.currentPrice.priceDateTime, 'HH:mm')}">
@@ -89,11 +90,12 @@
                             </div>
                         </div>
                         <div class="ml-4">
-                            <p class="text-sm font-medium text-gray-500">Lowest Today</p>
+                            <p class="text-sm font-medium text-gray-500" 
+                               th:text="'Lowest ' + ${title ?: 'Today'}">Lowest Today</p>
                             <div th:if="${summary.lowestPrice}">
                                 <p class="text-2xl font-bold text-green-600" 
-                                   th:text="${#numbers.formatDecimal(summary.lowestPrice.totalPricePerKWh, 1, 4, 'POINT')} + ' kr/kWh'">
-                                   0.0000 kr/kWh
+                                   th:text="${#numbers.formatDecimal(summary.lowestPrice.spotPricePerKWh, 1, 5, 'POINT')} + ' kr/kWh'">
+                                   0.00000 kr/kWh
                                 </p>
                                 <p class="text-xs text-gray-500" 
                                    th:text="${#temporals.format(summary.lowestPrice.priceDateTime, 'HH:mm')}">
@@ -118,11 +120,12 @@
                             </div>
                         </div>
                         <div class="ml-4">
-                            <p class="text-sm font-medium text-gray-500">Highest Today</p>
+                            <p class="text-sm font-medium text-gray-500" 
+                               th:text="'Highest ' + ${title ?: 'Today'}">Highest Today</p>
                             <div th:if="${summary.highestPrice}">
                                 <p class="text-2xl font-bold text-red-600" 
-                                   th:text="${#numbers.formatDecimal(summary.highestPrice.totalPricePerKWh, 1, 4, 'POINT')} + ' kr/kWh'">
-                                   0.0000 kr/kWh
+                                   th:text="${#numbers.formatDecimal(summary.highestPrice.spotPricePerKWh, 1, 5, 'POINT')} + ' kr/kWh'">
+                                   0.00000 kr/kWh
                                 </p>
                                 <p class="text-xs text-gray-500" 
                                    th:text="${#temporals.format(summary.highestPrice.priceDateTime, 'HH:mm')}">
@@ -137,19 +140,28 @@
                 </div>
             </div>
 
-            <!-- Data Points Today -->
+            <!-- Average Spot Price Today -->
             <div class="bg-white overflow-hidden shadow-lg rounded-lg price-card">
                 <div class="p-6">
                     <div class="flex items-center">
                         <div class="flex-shrink-0">
                             <div class="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center">
-                                <span class="text-white text-sm font-bold">#</span>
+                                <span class="text-white text-sm font-bold">Ø</span>
                             </div>
                         </div>
                         <div class="ml-4">
-                            <p class="text-sm font-medium text-gray-500">Data Points Today</p>
-                            <p class="text-2xl font-bold text-gray-900" th:text="${summary.priceCount}">0</p>
-                            <p class="text-xs text-gray-500">hourly prices</p>
+                            <p class="text-sm font-medium text-gray-500">Average Spot Price</p>
+                            <div th:if="${summary.avgSpotPrice != null}">
+                                <p class="text-2xl font-bold text-gray-900" 
+                                   th:text="${#numbers.formatDecimal(summary.avgSpotPrice, 1, 5, 'POINT')} + ' kr/kWh'">
+                                   0.00000 kr/kWh
+                                </p>
+                                <p class="text-xs text-gray-500" 
+                                   th:text="${title == 'Tomorrow'} ? 'tomorrow\'s average' : 'today\'s average'">today's average</p>
+                            </div>
+                            <div th:unless="${summary.avgSpotPrice != null}">
+                                <p class="text-2xl font-bold text-gray-400">No data</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -163,11 +175,6 @@
                     <h2 class="text-lg font-medium text-gray-900" th:if="${pricesPeriod == 'Tomorrow'}">Tomorrow's Electricity Prices</h2>
                     <h2 class="text-lg font-medium text-gray-900" th:unless="${pricesPeriod == 'Tomorrow'}">Today's Electricity Prices</h2>
                     <p class="text-sm text-gray-500">Hourly prices for DK1 (West Denmark) including all tariffs and taxes</p>
-                    <div th:if="${pricesPeriod == 'Tomorrow'}" class="mt-1">
-                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
-                            📅 Showing tomorrow's prices (today's not yet available)
-                        </span>
-                    </div>
                 </div>
                 <div class="text-right">
                     <a href="/api/fetch/today" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm">↻ Refresh Prices</a>
@@ -322,8 +329,9 @@
                             <span class="loading-spinner htmx-indicator"></span>
                         </div>
                     </button>
-                    <a href="/prices" class="block w-full text-left bg-green-50 hover:bg-green-100 rounded-lg p-3 transition-colors duration-200">
-                        <span class="text-green-800 font-medium">View All Prices</span>
+                    <a th:href="${title == 'Tomorrow'} ? '/' : '/tomorrow'" class="block w-full text-left bg-green-50 hover:bg-green-100 rounded-lg p-3 transition-colors duration-200">
+                        <span class="text-green-800 font-medium" 
+                              th:text="${title == 'Tomorrow'} ? 'View Today\'s Prices' : 'View Tomorrow\'s Prices'">View Tomorrow's Prices</span>
                     </a>
                     <a href="/api/fetch/both" class="block w-full text-left bg-purple-50 hover:bg-purple-100 rounded-lg p-3 transition-colors duration-200">
                         <span class="text-purple-800 font-medium">Fetch Real Prices from elprisenligenu.dk</span>

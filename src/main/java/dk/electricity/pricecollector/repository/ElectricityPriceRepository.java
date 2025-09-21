@@ -61,4 +61,10 @@ public interface ElectricityPriceRepository extends JpaRepository<ElectricityPri
            "AND ep.priceDateTime >= :fromDateTime ORDER BY ep.priceDateTime DESC")
     List<ElectricityPrice> findRecentPricesForRegion(@Param("region") String region, 
                                                     @Param("fromDateTime") LocalDateTime fromDateTime);
+    
+    // Find price for current hour (today's date and current hour)
+    @Query(value = "SELECT * FROM electricity_prices ep WHERE ep.region = :region " +
+           "AND ep.price_date = CURRENT_DATE AND ep.hour = :hour LIMIT 1", nativeQuery = true)
+    Optional<ElectricityPrice> findPriceForCurrentHour(@Param("region") String region, 
+                                                       @Param("hour") int hour);
 }

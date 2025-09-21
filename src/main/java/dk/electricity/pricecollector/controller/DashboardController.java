@@ -107,6 +107,88 @@ public class DashboardController {
         return "dashboard";
     }
     
+    @GetMapping("/tomorrow")
+    public String tomorrow(Model model) {
+        model.addAttribute("title", "Tomorrow");
+        
+        // Get summary data for DK1 (West Denmark) - tomorrow's data
+        ElectricityPriceService.PriceSummary summary = priceService.getTomorrowsSummary("DK1");
+        model.addAttribute("summary", summary);
+        
+        // Get recent prices for chart (still use recent for context)
+        List<ElectricityPrice> recentPrices = priceService.getRecentPrices("DK1", 24);
+        model.addAttribute("recentPrices", recentPrices);
+        
+        // Get tomorrow's prices
+        List<ElectricityPrice> displayPrices = priceService.getTomorrowsPrices("DK1");
+        String pricesPeriod = "Tomorrow";
+        
+        // If no tomorrow prices, try today as fallback
+        if (displayPrices.isEmpty()) {
+            displayPrices = priceService.getTodaysPrices("DK1");
+            pricesPeriod = "Today (Tomorrow not available)";
+        }
+        
+        model.addAttribute("todaysPrices", displayPrices); // Keep same attribute name for template compatibility
+        model.addAttribute("pricesPeriod", pricesPeriod);
+        
+        // Create a list for all 24 hours (null for missing hours)
+        List<ElectricityPrice> hourlyPricesList = new ArrayList<>();
+        for (int i = 0; i < 24; i++) {
+            hourlyPricesList.add(null);
+        }
+        for (ElectricityPrice price : displayPrices) {
+            int hour = price.getHour(); // Use the hour column directly
+            if (hour >= 0 && hour < 24) {
+                hourlyPricesList.set(hour, price);
+            }
+        }
+        model.addAttribute("hourlyPricesList", hourlyPricesList);
+        
+        // Also create a map for template compatibility
+        Map<Integer, ElectricityPrice> hourlyPrices = new HashMap<>();
+        for (ElectricityPrice price : displayPrices) {
+            int hour = price.getHour();
+            hourlyPrices.put(hour, price);
+        }
+        model.addAttribute("hourlyPrices", hourlyPrices);
+        
+        // Create ranking for all hours (1 = lowest spot price, 24 = highest)
+        Map<Integer, Integer> spotPriceRanks = new HashMap<>();
+        Map<Integer, String> rowClasses = new HashMap<>();
+        
+        if (!displayPrices.isEmpty()) {
+            List<ElectricityPrice> sortedBySpotPrice = displayPrices.stream()
+                .sorted((a, b) -> a.getSpotPrice().compareTo(b.getSpotPrice()))
+                .collect(Collectors.toList());
+            
+            for (int i = 0; i < sortedBySpotPrice.size(); i++) {
+                int hour = sortedBySpotPrice.get(i).getHour();
+                int rank = i + 1; // rank 1-24, where 1 is lowest
+                spotPriceRanks.put(hour, rank);
+                
+                // Green background for 8 lowest prices only
+                if (i < 8) {
+                    String bgClass;
+                    if (i == 0) bgClass = "bg-green-300"; // lowest price
+                    else if (i == 1) bgClass = "bg-green-200"; // 2nd lowest
+                    else if (i <= 3) bgClass = "bg-green-100"; // 3rd-4th lowest
+                    else bgClass = "bg-green-50"; // 5th-8th lowest
+                    
+                    rowClasses.put(hour, bgClass);
+                }
+            }
+        }
+        
+        model.addAttribute("spotPriceRanks", spotPriceRanks);
+        model.addAttribute("rowClasses", rowClasses);
+        
+        // Add current hour for highlighting (even though it's tomorrow data)
+        model.addAttribute("currentHour", LocalDateTime.now().getHour());
+        
+        return "dashboard"; // Reuse the same template
+    }
+    
     @GetMapping("/prices")
     public String prices(Model model, @RequestParam(defaultValue = "DK1") String region) {
         model.addAttribute("title", "Electricity Prices");

@@ -35,8 +35,9 @@ public class ElectricityPriceService {
      * Get current electricity price for a specific region
      */
     public Optional<ElectricityPrice> getCurrentPrice(String region) {
-        logger.debug("Fetching current price for region: {}", region);
-        return repository.findFirstByRegionOrderByPriceDateTimeDesc(region);
+        int currentHour = LocalDateTime.now().getHour();
+        logger.debug("Fetching current price for region: {} at hour: {}", region, currentHour);
+        return repository.findPriceForCurrentHour(region, currentHour);
     }
     
     /**
@@ -173,20 +174,56 @@ public class ElectricityPriceService {
         List<ElectricityPrice> todaysPrices = getTodaysPrices(region);
         
         if (todaysPrices.isEmpty()) {
-            return new PriceSummary(region, 0, null, null, null);
+            return new PriceSummary(region, 0, null, null, null, null);
         }
         
         ElectricityPrice lowest = todaysPrices.stream()
-            .min((p1, p2) -> p1.getTotalPrice().compareTo(p2.getTotalPrice()))
+            .min((p1, p2) -> p1.getSpotPrice().compareTo(p2.getSpotPrice()))
             .orElse(null);
             
         ElectricityPrice highest = todaysPrices.stream()
-            .max((p1, p2) -> p1.getTotalPrice().compareTo(p2.getTotalPrice()))
+            .max((p1, p2) -> p1.getSpotPrice().compareTo(p2.getSpotPrice()))
             .orElse(null);
             
         ElectricityPrice current = getCurrentPrice(region).orElse(null);
         
-        return new PriceSummary(region, todaysPrices.size(), current, lowest, highest);
+        // Calculate average spot price
+        double avgSpotPrice = todaysPrices.stream()
+            .mapToDouble(p -> p.getSpotPrice().doubleValue())
+            .average()
+            .orElse(0.0);
+        
+        return new PriceSummary(region, todaysPrices.size(), current, lowest, highest, avgSpotPrice);
+    }
+    
+    /**
+     * Get statistics summary for tomorrow
+     */
+    public PriceSummary getTomorrowsSummary(String region) {
+        List<ElectricityPrice> tomorrowsPrices = getTomorrowsPrices(region);
+        
+        if (tomorrowsPrices.isEmpty()) {
+            return new PriceSummary(region, 0, null, null, null, null);
+        }
+        
+        ElectricityPrice lowest = tomorrowsPrices.stream()
+            .min((p1, p2) -> p1.getSpotPrice().compareTo(p2.getSpotPrice()))
+            .orElse(null);
+            
+        ElectricityPrice highest = tomorrowsPrices.stream()
+            .max((p1, p2) -> p1.getSpotPrice().compareTo(p2.getSpotPrice()))
+            .orElse(null);
+            
+        // For tomorrow, we don't have a "current" price, use null or first hour
+        ElectricityPrice current = null; // No current price for tomorrow
+        
+        // Calculate average spot price
+        double avgSpotPrice = tomorrowsPrices.stream()
+            .mapToDouble(p -> p.getSpotPrice().doubleValue())
+            .average()
+            .orElse(0.0);
+        
+        return new PriceSummary(region, tomorrowsPrices.size(), current, lowest, highest, avgSpotPrice);
     }
     
     /**
@@ -198,14 +235,16 @@ public class ElectricityPriceService {
         private final ElectricityPrice currentPrice;
         private final ElectricityPrice lowestPrice;
         private final ElectricityPrice highestPrice;
+        private final Double avgSpotPrice;
         
         public PriceSummary(String region, int priceCount, ElectricityPrice currentPrice,
-                           ElectricityPrice lowestPrice, ElectricityPrice highestPrice) {
+                           ElectricityPrice lowestPrice, ElectricityPrice highestPrice, Double avgSpotPrice) {
             this.region = region;
             this.priceCount = priceCount;
             this.currentPrice = currentPrice;
             this.lowestPrice = lowestPrice;
             this.highestPrice = highestPrice;
+            this.avgSpotPrice = avgSpotPrice;
         }
         
         // Getters
@@ -214,5 +253,6 @@ public class ElectricityPriceService {
         public ElectricityPrice getCurrentPrice() { return currentPrice; }
         public ElectricityPrice getLowestPrice() { return lowestPrice; }
         public ElectricityPrice getHighestPrice() { return highestPrice; }
+        public Double getAvgSpotPrice() { return avgSpotPrice; }
     }
 }
