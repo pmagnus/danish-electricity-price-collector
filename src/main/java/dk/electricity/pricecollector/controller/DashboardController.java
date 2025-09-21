@@ -35,6 +35,10 @@ public class DashboardController {
         List<ElectricityPrice> recentPrices = priceService.getRecentPrices("DK1", 24);
         model.addAttribute("recentPrices", recentPrices);
         
+        // Get today's prices for detailed view
+        List<ElectricityPrice> todaysPrices = priceService.getTodaysPrices("DK1");
+        model.addAttribute("todaysPrices", todaysPrices);
+        
         return "dashboard";
     }
     
