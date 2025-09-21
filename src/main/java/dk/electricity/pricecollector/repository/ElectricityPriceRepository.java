@@ -24,29 +24,29 @@ public interface ElectricityPriceRepository extends JpaRepository<ElectricityPri
     Optional<ElectricityPrice> findFirstByRegionOrderByPriceDateTimeDesc(String region);
     
     // Find prices for today for a specific region
-    @Query("SELECT ep FROM ElectricityPrice ep WHERE ep.region = :region " +
-           "AND DATE(ep.priceDateTime) = CURRENT_DATE ORDER BY ep.priceDateTime ASC")
+    @Query(value = "SELECT * FROM electricity_prices ep WHERE ep.region = :region " +
+           "AND DATE(ep.price_date_time) = CURRENT_DATE ORDER BY ep.price_date_time ASC", nativeQuery = true)
     List<ElectricityPrice> findTodaysPricesForRegion(@Param("region") String region);
     
     // Find prices for tomorrow for a specific region
-    @Query("SELECT ep FROM ElectricityPrice ep WHERE ep.region = :region " +
-           "AND DATE(ep.priceDateTime) = CURRENT_DATE + 1 ORDER BY ep.priceDateTime ASC")
+    @Query(value = "SELECT * FROM electricity_prices ep WHERE ep.region = :region " +
+           "AND DATE(ep.price_date_time) = CURRENT_DATE + INTERVAL '1 day' ORDER BY ep.price_date_time ASC", nativeQuery = true)
     List<ElectricityPrice> findTomorrowsPricesForRegion(@Param("region") String region);
     
     // Check if price already exists for specific datetime and region
     boolean existsByPriceDateTimeAndRegion(LocalDateTime priceDateTime, String region);
     
     // Find the lowest price for a specific date and region
-    @Query("SELECT ep FROM ElectricityPrice ep WHERE ep.region = :region " +
-           "AND DATE(ep.priceDateTime) = DATE(:date) " +
-           "ORDER BY ep.totalPrice ASC LIMIT 1")
+    @Query(value = "SELECT * FROM electricity_prices ep WHERE ep.region = :region " +
+           "AND DATE(ep.price_date_time) = DATE(:date) " +
+           "ORDER BY ep.total_price ASC LIMIT 1", nativeQuery = true)
     Optional<ElectricityPrice> findLowestPriceForDate(@Param("region") String region, 
                                                      @Param("date") LocalDateTime date);
     
     // Find the highest price for a specific date and region
-    @Query("SELECT ep FROM ElectricityPrice ep WHERE ep.region = :region " +
-           "AND DATE(ep.priceDateTime) = DATE(:date) " +
-           "ORDER BY ep.totalPrice DESC LIMIT 1")
+    @Query(value = "SELECT * FROM electricity_prices ep WHERE ep.region = :region " +
+           "AND DATE(ep.price_date_time) = DATE(:date) " +
+           "ORDER BY ep.total_price DESC LIMIT 1", nativeQuery = true)
     Optional<ElectricityPrice> findHighestPriceForDate(@Param("region") String region, 
                                                       @Param("date") LocalDateTime date);
     

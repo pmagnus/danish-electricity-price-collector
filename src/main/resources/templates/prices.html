@@ -38,7 +38,7 @@
                     <p class="text-sm text-gray-500" th:text="'Region: ' + ${selectedRegion}">Region: DK1</p>
                 </div>
                 <button hx-get="/api/todays-prices"
-                        th:hx-vals="'{\"region\": \"' + ${selectedRegion} + '\"}'"
+                        th:hx-vals="|{&quot;region&quot;: &quot;${selectedRegion}&quot;}|"
                         hx-target="#todays-prices"
                         hx-indicator=".loading-spinner"
                         class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium">
@@ -97,7 +97,7 @@
                     <p class="text-sm text-gray-500">Available from 2:00 PM CET</p>
                 </div>
                 <button hx-get="/api/tomorrows-prices"
-                        th:hx-vals="'{\"region\": \"' + ${selectedRegion} + '\"}'"
+                        th:hx-vals="|{&quot;region&quot;: &quot;${selectedRegion}&quot;}|"
                         hx-target="#tomorrows-prices"
                         hx-indicator=".loading-spinner"
                         class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium">
