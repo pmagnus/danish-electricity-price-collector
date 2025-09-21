@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: html}">
+<head>
+    <title th:text="${title}">Dashboard</title>
+</head>
+<body>
+    <div th:fragment="content" class="px-4 py-8">
+        <!-- Page Header -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">Danish Electricity Price Dashboard</h1>
+            <p class="text-gray-600">Real-time electricity prices for West Denmark (DK1) with all tariffs included</p>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <!-- Current Price Card -->
+            <div class="bg-white overflow-hidden shadow-lg rounded-lg price-card">
+                <div class="p-6">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                                <span class="text-white text-sm font-bold">⚡</span>
+                            </div>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-500">Current Price</p>
+                            <div th:if="${summary.currentPrice}">
+                                <p class="text-2xl font-bold text-gray-900" 
+                                   th:text="${#numbers.formatDecimal(summary.currentPrice.totalPricePerKWh, 0, 4)} + ' kr/kWh'">
+                                   0.0000 kr/kWh
+                                </p>
+                                <p class="text-xs text-gray-500" 
+                                   th:text="${#temporals.format(summary.currentPrice.priceDateTime, 'HH:mm')}">
+                                   00:00
+                                </p>
+                            </div>
+                            <div th:unless="${summary.currentPrice}">
+                                <p class="text-2xl font-bold text-gray-400">No data</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lowest Price Today -->
+            <div class="bg-white overflow-hidden shadow-lg rounded-lg price-card">
+                <div class="p-6">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <div class="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                                <span class="text-white text-sm font-bold">↓</span>
+                            </div>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-500">Lowest Today</p>
+                            <div th:if="${summary.lowestPrice}">
+                                <p class="text-2xl font-bold text-green-600" 
+                                   th:text="${#numbers.formatDecimal(summary.lowestPrice.totalPricePerKWh, 0, 4)} + ' kr/kWh'">
+                                   0.0000 kr/kWh
+                                </p>
+                                <p class="text-xs text-gray-500" 
+                                   th:text="${#temporals.format(summary.lowestPrice.priceDateTime, 'HH:mm')}">
+                                   00:00
+                                </p>
+                            </div>
+                            <div th:unless="${summary.lowestPrice}">
+                                <p class="text-2xl font-bold text-gray-400">No data</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Highest Price Today -->
+            <div class="bg-white overflow-hidden shadow-lg rounded-lg price-card">
+                <div class="p-6">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <div class="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center">
+                                <span class="text-white text-sm font-bold">↑</span>
+                            </div>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-500">Highest Today</p>
+                            <div th:if="${summary.highestPrice}">
+                                <p class="text-2xl font-bold text-red-600" 
+                                   th:text="${#numbers.formatDecimal(summary.highestPrice.totalPricePerKWh, 0, 4)} + ' kr/kWh'">
+                                   0.0000 kr/kWh
+                                </p>
+                                <p class="text-xs text-gray-500" 
+                                   th:text="${#temporals.format(summary.highestPrice.priceDateTime, 'HH:mm')}">
+                                   00:00
+                                </p>
+                            </div>
+                            <div th:unless="${summary.highestPrice}">
+                                <p class="text-2xl font-bold text-gray-400">No data</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Points Today -->
+            <div class="bg-white overflow-hidden shadow-lg rounded-lg price-card">
+                <div class="p-6">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <div class="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center">
+                                <span class="text-white text-sm font-bold">#</span>
+                            </div>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-500">Data Points Today</p>
+                            <p class="text-2xl font-bold text-gray-900" th:text="${summary.priceCount}">0</p>
+                            <p class="text-xs text-gray-500">hourly prices</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Prices Chart Area -->
+        <div class="bg-white shadow-lg rounded-lg mb-8">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-lg font-medium text-gray-900">Recent Prices (Last 24 Hours)</h2>
+                <p class="text-sm text-gray-500">Electricity prices including all tariffs and taxes</p>
+            </div>
+            <div class="p-6">
+                <div th:if="${not #lists.isEmpty(recentPrices)}" class="overflow-x-auto">
+                    <div class="min-w-full grid grid-cols-12 gap-2">
+                        <div th:each="price : ${recentPrices}" class="text-center">
+                            <div class="bg-blue-50 rounded-lg p-2 mb-2"
+                                 th:style="'height: ' + ${(price.totalPricePerKWh * 100) + 20} + 'px;'">
+                                <div class="text-xs font-medium text-blue-800 transform -rotate-90 whitespace-nowrap"
+                                     th:text="${#numbers.formatDecimal(price.totalPricePerKWh, 0, 3)}">0.000</div>
+                            </div>
+                            <div class="text-xs text-gray-500" 
+                                 th:text="${#temporals.format(price.priceDateTime, 'HH:mm')}">00:00</div>
+                        </div>
+                    </div>
+                </div>
+                <div th:if="${#lists.isEmpty(recentPrices)}" class="text-center py-8">
+                    <p class="text-gray-500">No recent price data available</p>
+                    <a href="/api/test/add-sample-data" class="text-blue-600 hover:text-blue-800 text-sm">
+                        Add sample data for testing
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-white shadow-lg rounded-lg p-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Quick Actions</h3>
+                <div class="space-y-3">
+                    <button 
+                        hx-get="/api/current-price?region=DK1" 
+                        hx-target="#current-price-display" 
+                        hx-indicator=".loading-spinner"
+                        class="w-full text-left bg-blue-50 hover:bg-blue-100 rounded-lg p-3 transition-colors duration-200">
+                        <div class="flex items-center justify-between">
+                            <span class="text-blue-800 font-medium">Refresh Current Price</span>
+                            <span class="loading-spinner htmx-indicator"></span>
+                        </div>
+                    </button>
+                    <a href="/prices" class="block w-full text-left bg-green-50 hover:bg-green-100 rounded-lg p-3 transition-colors duration-200">
+                        <span class="text-green-800 font-medium">View All Prices</span>
+                    </a>
+                </div>
+            </div>
+
+            <div class="bg-white shadow-lg rounded-lg p-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">System Status</h3>
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-600">Database Connection</span>
+                        <span class="text-green-600 font-medium">✓ Connected</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-600">Data Source</span>
+                        <span class="text-blue-600 font-medium">Denmark West (DK1)</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-600">Last Update</span>
+                        <span class="text-gray-600 text-sm" th:if="${summary.currentPrice}"
+                              th:text="${#temporals.format(summary.currentPrice.updatedAt, 'HH:mm dd/MM')}">
+                              Never
+                        </span>
+                        <span class="text-gray-400 text-sm" th:unless="${summary.currentPrice}">Never</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hidden div for HTMX responses -->
+        <div id="current-price-display" style="display: none;"></div>
+    </div>
+</body>
+</html>

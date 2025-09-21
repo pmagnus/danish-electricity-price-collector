@@ -1,0 +1,39 @@
+/* Custom styles for Danish Electricity Price Collector */
+
+/* HTMX loading indicators */
+.htmx-indicator {
+    opacity: 0;
+    transition: opacity 200ms ease-in;
+}
+
+.htmx-request .htmx-indicator {
+    opacity: 1;
+}
+
+/* Price card animations */
+.price-card {
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.price-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+/* Price value styling */
+.price-positive {
+    @apply text-green-600 font-semibold;
+}
+
+.price-negative {
+    @apply text-red-600 font-semibold;
+}
+
+.price-neutral {
+    @apply text-gray-600 font-semibold;
+}
+
+/* Loading spinner */
+.loading-spinner {
+    @apply inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600;
+}

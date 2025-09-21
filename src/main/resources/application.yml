@@ -1,0 +1,29 @@
+spring:
+  application:
+    name: danish-electricity-price-collector
+    
+  datasource:
+    url: jdbc:postgresql://localhost:5432/electricity_prices
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+    
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        
+  thymeleaf:
+    cache: false
+    
+server:
+  port: 8080
+  
+logging:
+  level:
+    dk.electricity: DEBUG
+    org.springframework.web: DEBUG

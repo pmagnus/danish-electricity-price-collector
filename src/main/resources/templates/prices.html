@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: html}">
+<head>
+    <title th:text="${title}">Electricity Prices</title>
+</head>
+<body>
+    <div th:fragment="content" class="px-4 py-8">
+        <!-- Page Header -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">Electricity Prices</h1>
+            <p class="text-gray-600">Hourly electricity prices with detailed tariff breakdown</p>
+        </div>
+
+        <!-- Region Selector -->
+        <div class="bg-white shadow-lg rounded-lg p-6 mb-8">
+            <h2 class="text-lg font-medium text-gray-900 mb-4">Region</h2>
+            <div class="flex space-x-4">
+                <button th:class="'px-4 py-2 rounded-lg font-medium ' + (${selectedRegion} == 'DK1' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300')"
+                        hx-get="/prices?region=DK1"
+                        hx-target="body"
+                        hx-push-url="true">
+                    DK1 - West Denmark
+                </button>
+                <button th:class="'px-4 py-2 rounded-lg font-medium ' + (${selectedRegion} == 'DK2' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300')"
+                        hx-get="/prices?region=DK2"
+                        hx-target="body"
+                        hx-push-url="true">
+                    DK2 - East Denmark
+                </button>
+            </div>
+        </div>
+
+        <!-- Today's Prices -->
+        <div class="bg-white shadow-lg rounded-lg mb-8">
+            <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                <div>
+                    <h2 class="text-lg font-medium text-gray-900">Today's Prices</h2>
+                    <p class="text-sm text-gray-500" th:text="'Region: ' + ${selectedRegion}">Region: DK1</p>
+                </div>
+                <button hx-get="/api/todays-prices"
+                        th:hx-vals="'{\"region\": \"' + ${selectedRegion} + '\"}'"
+                        hx-target="#todays-prices"
+                        hx-indicator=".loading-spinner"
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium">
+                    <span class="loading-spinner htmx-indicator mr-2"></span>
+                    Refresh
+                </button>
+            </div>
+            <div id="todays-prices" class="p-6">
+                <div th:if="${not #lists.isEmpty(todaysPrices)}" class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Spot Price</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Transmission</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">System</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tax</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <tr th:each="price : ${todaysPrices}" class="hover:bg-gray-50">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900"
+                                    th:text="${#temporals.format(price.priceDateTime, 'HH:mm')}">00:00</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
+                                    th:text="${#numbers.formatDecimal(price.spotPricePerKWh, 0, 4)} + ' kr'">0.0000 kr</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
+                                    th:text="${#numbers.formatDecimal(price.transmissionTariff / 1000, 0, 4)} + ' kr'">0.0000 kr</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
+                                    th:text="${#numbers.formatDecimal(price.systemTariff / 1000, 0, 4)} + ' kr'">0.0000 kr</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
+                                    th:text="${#numbers.formatDecimal(price.electricityTax / 1000, 0, 4)} + ' kr'">0.0000 kr</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium"
+                                    th:class="'px-6 py-4 whitespace-nowrap text-sm font-medium ' + 
+                                             (${price.totalPricePerKWh > 1} ? 'text-red-600' : 
+                                              ${price.totalPricePerKWh < 0.5} ? 'text-green-600' : 'text-gray-900')"
+                                    th:text="${#numbers.formatDecimal(price.totalPricePerKWh, 0, 4)} + ' kr'">0.0000 kr</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div th:if="${#lists.isEmpty(todaysPrices)}" class="text-center py-8">
+                    <p class="text-gray-500 mb-4">No price data available for today</p>
+                    <a href="/api/test/add-sample-data" class="text-blue-600 hover:text-blue-800">
+                        Add sample data for testing
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tomorrow's Prices -->
+        <div class="bg-white shadow-lg rounded-lg">
+            <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                <div>
+                    <h2 class="text-lg font-medium text-gray-900">Tomorrow's Prices</h2>
+                    <p class="text-sm text-gray-500">Available from 2:00 PM CET</p>
+                </div>
+                <button hx-get="/api/tomorrows-prices"
+                        th:hx-vals="'{\"region\": \"' + ${selectedRegion} + '\"}'"
+                        hx-target="#tomorrows-prices"
+                        hx-indicator=".loading-spinner"
+                        class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium">
+                    <span class="loading-spinner htmx-indicator mr-2"></span>
+                    Refresh
+                </button>
+            </div>
+            <div id="tomorrows-prices" class="p-6">
+                <div th:if="${not #lists.isEmpty(tomorrowsPrices)}" class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Spot Price</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Transmission</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">System</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tax</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <tr th:each="price : ${tomorrowsPrices}" class="hover:bg-gray-50">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900"
+                                    th:text="${#temporals.format(price.priceDateTime, 'HH:mm')}">00:00</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
+                                    th:text="${#numbers.formatDecimal(price.spotPricePerKWh, 0, 4)} + ' kr'">0.0000 kr</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
+                                    th:text="${#numbers.formatDecimal(price.transmissionTariff / 1000, 0, 4)} + ' kr'">0.0000 kr</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
+                                    th:text="${#numbers.formatDecimal(price.systemTariff / 1000, 0, 4)} + ' kr'">0.0000 kr</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
+                                    th:text="${#numbers.formatDecimal(price.electricityTax / 1000, 0, 4)} + ' kr'">0.0000 kr</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium"
+                                    th:class="'px-6 py-4 whitespace-nowrap text-sm font-medium ' + 
+                                             (${price.totalPricePerKWh > 1} ? 'text-red-600' : 
+                                              ${price.totalPricePerKWh < 0.5} ? 'text-green-600' : 'text-gray-900')"
+                                    th:text="${#numbers.formatDecimal(price.totalPricePerKWh, 0, 4)} + ' kr'">0.0000 kr</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div th:if="${#lists.isEmpty(tomorrowsPrices)}" class="text-center py-8">
+                    <p class="text-gray-500">Tomorrow's prices are not yet available</p>
+                    <p class="text-sm text-gray-400">Prices are usually published around 2:00 PM CET</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
