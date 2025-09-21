@@ -2,6 +2,7 @@ package dk.electricity.pricecollector.controller;
 
 import dk.electricity.pricecollector.model.ElectricityPrice;
 import dk.electricity.pricecollector.service.ElectricityPriceService;
+import dk.electricity.pricecollector.service.ElprisenLigenuService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -18,6 +19,9 @@ public class DashboardController {
     
     @Autowired
     private ElectricityPriceService priceService;
+    
+    @Autowired
+    private ElprisenLigenuService elprisenLigenuService;
     
     @GetMapping("/")
     public String dashboard(Model model) {
@@ -129,5 +133,41 @@ public class DashboardController {
         }
         
         return "Sample data added successfully!";
+    }
+    
+    // Real price fetching endpoints
+    
+    @GetMapping("/api/fetch/today")
+    @ResponseBody
+    public String fetchTodaysPrices() {
+        try {
+            elprisenLigenuService.fetchAndSaveTodaysPrices();
+            return "Today's real electricity prices fetched and saved successfully!";
+        } catch (Exception e) {
+            return "Error fetching today's prices: " + e.getMessage();
+        }
+    }
+    
+    @GetMapping("/api/fetch/tomorrow")
+    @ResponseBody
+    public String fetchTomorrowsPrices() {
+        try {
+            elprisenLigenuService.fetchAndSaveTomorrowsPrices();
+            return "Tomorrow's real electricity prices fetched and saved successfully!";
+        } catch (Exception e) {
+            return "Error fetching tomorrow's prices: " + e.getMessage();
+        }
+    }
+    
+    @GetMapping("/api/fetch/both")
+    @ResponseBody
+    public String fetchBothDaysPrices() {
+        try {
+            elprisenLigenuService.fetchAndSaveTodaysPrices();
+            elprisenLigenuService.fetchAndSaveTomorrowsPrices();
+            return "Both today's and tomorrow's real electricity prices fetched and saved successfully!";
+        } catch (Exception e) {
+            return "Error fetching prices: " + e.getMessage();
+        }
     }
 }

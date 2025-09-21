@@ -89,6 +89,11 @@ Open your browser and navigate to:
 ### Development Endpoints
 - `GET /api/test/add-sample-data` - Add sample data for testing
 
+### Real Price Fetching Endpoints
+- `GET /api/fetch/today` - Fetch today's real prices from elprisenligenu.dk
+- `GET /api/fetch/tomorrow` - Fetch tomorrow's real prices from elprisenligenu.dk
+- `GET /api/fetch/both` - Fetch both today's and tomorrow's real prices
+
 ## 📁 Project Structure
 
 ```
@@ -157,6 +162,19 @@ http://localhost:8080/api/test/add-sample-data
 ```
 
 This will populate the database with realistic sample prices for the current day.
+
+### Fetch Real Electricity Prices
+
+To fetch real electricity prices from elprisenligenu.dk, visit:
+```
+http://localhost:8080/api/fetch/both
+```
+
+This will fetch today's and tomorrow's actual electricity prices for both DK1 and DK2 regions.
+
+**Individual endpoints:**
+- Today's prices: `http://localhost:8080/api/fetch/today`
+- Tomorrow's prices: `http://localhost:8080/api/fetch/tomorrow`
 
 ### Run Tests
 

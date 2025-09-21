@@ -32,6 +32,15 @@ docker compose up -d
 
 # Add sample test data (via HTTP endpoint)
 curl http://localhost:8080/api/test/add-sample-data
+
+# Fetch real electricity prices from elprisenligenu.dk
+curl http://localhost:8080/api/fetch/both
+
+# Fetch only today's real prices
+curl http://localhost:8080/api/fetch/today
+
+# Fetch only tomorrow's real prices
+curl http://localhost:8080/api/fetch/tomorrow
 ```
 
 ### Database
@@ -119,10 +128,17 @@ Key settings in `application.yml`:
 - Dynamic content updates targeted to specific DOM elements
 - Region switching implemented via query parameter changes
 
+### Real Price Integration
+- `ElprisenLigenuService` fetches real electricity prices from elprisenligenu.dk API
+- Uses API format: `/api/v1/prices/yyyy/MM-dd_REGION.json` (e.g., `2025/09-21_DK1.json`)
+- Converts spot prices from DKK/kWh to DKK/MWh and adds Danish tariffs/taxes
+- `PriceScheduler` automatically fetches prices daily at 13:05, 13:10, and 13:15
+- Manual endpoints available for immediate fetching
+
 ### Development Workflow
 1. Start database: `docker compose up -d`
 2. Run application: `./mvnw spring-boot:run`
-3. Visit http://localhost:8080/api/test/add-sample-data to populate test data
+3. Fetch real prices: http://localhost:8080/api/fetch/both
 4. Access dashboard at http://localhost:8080/
 
 The application uses Spring Boot DevTools for automatic restart on code changes during development.
