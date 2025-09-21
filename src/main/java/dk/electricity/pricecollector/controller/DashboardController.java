@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Controller
 public class DashboardController {
@@ -70,6 +71,35 @@ public class DashboardController {
             hourlyPrices.put(hour, price);
         }
         model.addAttribute("hourlyPrices", hourlyPrices);
+        
+        // Find the 8 lowest spot prices for green gradient highlighting
+        List<ElectricityPrice> sortedBySpotPrice = displayPrices.stream()
+            .sorted((a, b) -> a.getSpotPrice().compareTo(b.getSpotPrice()))
+            .collect(Collectors.toList());
+        
+        // Create ranking for all hours (1 = lowest spot price, 24 = highest)
+        Map<Integer, Integer> spotPriceRanks = new HashMap<>();
+        Map<Integer, String> rowClasses = new HashMap<>();
+        
+        for (int i = 0; i < sortedBySpotPrice.size(); i++) {
+            int hour = sortedBySpotPrice.get(i).getHour();
+            int rank = i + 1; // rank 1-24, where 1 is lowest
+            spotPriceRanks.put(hour, rank);
+            
+            // Green background for 8 lowest prices only
+            if (i < 8) {
+                String bgClass;
+                if (i == 0) bgClass = "bg-green-300"; // lowest price
+                else if (i == 1) bgClass = "bg-green-200"; // 2nd lowest
+                else if (i <= 3) bgClass = "bg-green-100"; // 3rd-4th lowest
+                else bgClass = "bg-green-50"; // 5th-8th lowest
+                
+                rowClasses.put(hour, bgClass);
+            }
+        }
+        
+        model.addAttribute("spotPriceRanks", spotPriceRanks);
+        model.addAttribute("rowClasses", rowClasses);
         
         // Add current hour for highlighting
         model.addAttribute("currentHour", LocalDateTime.now().getHour());
